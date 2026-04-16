@@ -6,7 +6,7 @@ body {
 	font-family: "Inter", sans-serif;
 	font-weight: 200;
 	letter-spacing: -0.02em;
-	background: #F6F7F0;
+	background: #f6f7f0;
 	color: #3b4038;
 }
 strong {
@@ -45,7 +45,7 @@ strong {
 	overflow: hidden;
 	isolation: isolate;
 	// background: #111;
-	background-color: #D7DCC1;
+	background-color: #d7dcc1;
 
 	position: relative;
 	&:has(.overlay) {
@@ -62,7 +62,7 @@ a.btn {
 	color: currentColor;
 	text-transform: uppercase;
 	letter-spacing: 0.2em;
-	transition: gap .15s ease-in-out;
+	transition: gap 0.15s ease-in-out;
 	& svg {
 		fill: currentColor;
 	}
@@ -120,7 +120,6 @@ a.btn {
 
 .section-track {
 	position: relative;
-	
 }
 .word-line {
 	display: block;
@@ -147,8 +146,11 @@ h5,
 h6 {
 	font-weight: 200;
 	line-height: 1.1;
-	margin: 0 0 1.2rem;
+	margin: 0 0 1.4rem;
 	font-family: "Sora", Helvetica, sans-serif;
+	&:not(:first-child) {
+		margin-top: 1.4rem;
+	}
 }
 
 .h-xl {
