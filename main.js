@@ -1,147 +1,293 @@
 gsap.registerPlugin(ScrollTrigger);
 
-const lenis = new Lenis({
-	duration: 1.1,
-	smoothWheel: true,
-	syncTouch: false,
-});
+const SECTION_STICKY_MULTIPLIER = 2;
+const CONTENT_SHIFT_PERCENT_START = 3;
+const CONTENT_SHIFT_PERCENT = -3;
+const IMAGE_BG_START_OPACITY = 0.5;
+const IMAGE_BG_END_OPACITY = 1;
+const IMAGE_BG_START_SCALE = 1;
+const IMAGE_BG_END_SCALE = 1.15;
+const INITIAL_SCROLL_DISTANCE = 1200;
+const BRAND_ANIMATION_START = 0;
+const TRACK_ANIMATION_START = 0.12;
+const TRACK_FADE_DELAY = 0.2;
+const HEADING_WORD_BLUR = 5;
+const HEADING_WORD_STAGGER = 0.025;
+const FADE_ITEM_STAGGER = 0.12;
+const FADE_ITEM_Y = 16;
 
-lenis.on("scroll", ScrollTrigger.update);
+const getStickyDistance = (section) => section.offsetHeight * SECTION_STICKY_MULTIPLIER;
 
-gsap.ticker.add((time) => {
-	lenis.raf(time * 1000);
-});
+const createLenis = () => {
+	const lenis = new Lenis();
 
-gsap.ticker.lagSmoothing(0);
-window.lenis = lenis;
+	lenis.on("scroll", ScrollTrigger.update);
+	gsap.ticker.add((time) => {
+		lenis.raf(time * 1000);
+	});
 
-const sendVimeoCommand = (iframe, method) => {
-	iframe?.contentWindow?.postMessage(
-		JSON.stringify({
-			method,
-		}),
-		"*",
-	);
+	return lenis;
 };
 
-const splitWords = (element) => {
+const runInitialScroll = (lenis) => {
+	lenis.scrollTo(INITIAL_SCROLL_DISTANCE, {
+		duration: 1.2,
+		easing: (t) => 1 - Math.pow(1 - t, 3),
+	});
+};
+
+const sendVimeoCommand = (iframe, method) => {
+	iframe?.contentWindow?.postMessage(JSON.stringify({ method }), "*");
+};
+
+const splitTextIntoWords = (element) => {
 	const text = element.textContent.trim().replace(/\s+/g, " ");
+
+	if (!text) {
+		return [];
+	}
+
 	const words = text.split(" ");
 	const line = document.createElement("span");
 
 	line.className = "word-line";
-
-	element.setAttribute("aria-label", text);
 	element.textContent = "";
 	element.appendChild(line);
 
 	words.forEach((word, index) => {
-		const wordSpan = document.createElement("span");
-		wordSpan.className = "word";
-		wordSpan.setAttribute("aria-hidden", "true");
-		wordSpan.textContent = word;
-		line.appendChild(wordSpan);
+		const wordElement = document.createElement("span");
+
+		wordElement.className = "word";
+		wordElement.textContent = word;
+		line.appendChild(wordElement);
 
 		if (index < words.length - 1) {
 			line.appendChild(document.createTextNode(" "));
 		}
 	});
 
-	return gsap.utils.toArray(".word", element);
+	return Array.from(line.querySelectorAll(".word"));
 };
 
-const buildSectionScroll = (section) => {
-	const items = gsap.utils.toArray(".section-item", section);
-	const video = section.querySelector(".video-bg");
+const splitHeadingWords = (heading) => {
+	const splitTarget = heading.children.length === 1 ? heading.firstElementChild : heading;
 
-	if (!items.length) {
+	return splitTextIntoWords(splitTarget);
+};
+
+const addTrackAnimations = (section, timeline, config = {}) => {
+	const track = section.querySelector(".section-track");
+	const {
+		headingStep = 0.14,
+		headingDuration = 0.28,
+		fadeStart = TRACK_ANIMATION_START + TRACK_FADE_DELAY,
+		fadeDuration = 0.24,
+	} = config;
+
+	if (!track) {
 		return;
 	}
 
-	gsap.set(items, {
-		yPercent: 50,
-		autoAlpha: 1,
+	const headings = Array.from(track.querySelectorAll("h1, h2, h3, h4, h5, h6"));
+	const fadeItems = Array.from(track.children).filter(
+		(element) => !/^H[1-6]$/.test(element.tagName),
+	);
+
+	headings.forEach((heading, index) => {
+		const words = splitHeadingWords(heading);
+		const position = TRACK_ANIMATION_START + index * headingStep;
+
+		if (!words.length) {
+			return;
+		}
+
+		gsap.set(words, {
+			autoAlpha: 0,
+			filter: `blur(${HEADING_WORD_BLUR}px)`,
+		});
+
+		timeline.to(
+			words,
+			{
+				autoAlpha: 1,
+				filter: "blur(0px)",
+				duration: headingDuration,
+				stagger: HEADING_WORD_STAGGER,
+				ease: "power1.out",
+			},
+			position,
+		);
 	});
+
+	if (!fadeItems.length) {
+		return;
+	}
+
+	gsap.set(fadeItems, {
+		autoAlpha: 0,
+		y: FADE_ITEM_Y,
+	});
+
+	timeline.to(
+		fadeItems,
+		{
+			autoAlpha: 1,
+			y: 0,
+			duration: fadeDuration,
+			stagger: FADE_ITEM_STAGGER,
+			ease: "power1.out",
+		},
+		fadeStart,
+	);
+};
+
+const setupVideoPlayback = (section) => {
+	const video = section.querySelector(".video-bg");
+
+	if (!video) {
+		return;
+	}
+
+	const getVideoEndOffset = () => getStickyDistance(section) - section.offsetHeight;
+
+	ScrollTrigger.create({
+		trigger: section,
+		start: "top bottom",
+		end: () => `bottom+=${getVideoEndOffset()} top`,
+		onEnter: () => sendVimeoCommand(video, "play"),
+		onEnterBack: () => sendVimeoCommand(video, "play"),
+		onLeave: () => sendVimeoCommand(video, "pause"),
+		onLeaveBack: () => sendVimeoCommand(video, "pause"),
+	});
+};
+
+const setupLastVideoPauseOverride = () => {
+	const videoSections = gsap.utils
+		.toArray(".section")
+		.filter((section) => section.querySelector(".video-bg"));
+	const lastVideoSection = videoSections.at(-1);
+	const lastVideo = lastVideoSection?.querySelector(".video-bg");
+
+	if (!lastVideoSection || !lastVideo) {
+		return;
+	}
+
+	const getVideoEndOffset = () => getStickyDistance(lastVideoSection) - lastVideoSection.offsetHeight;
+
+	ScrollTrigger.create({
+		trigger: lastVideoSection,
+		start: "top bottom",
+		end: () => `bottom+=${getVideoEndOffset()} top`,
+		onLeave: () => sendVimeoCommand(lastVideo, "play"),
+	});
+};
+
+const setupOverlayAnimation = (section) => {
+	const overlay = section.querySelector(".overlay");
+
+	if (!overlay) {
+		return;
+	}
+
+	const targetOpacity = Number.parseFloat(getComputedStyle(overlay).opacity) || 0;
+
+	gsap.set(overlay, {
+		opacity: 0,
+	});
+
+	gsap.to(overlay, {
+		opacity: targetOpacity,
+		duration: 0.4,
+		ease: "power1.out",
+		scrollTrigger: {
+			trigger: section,
+			start: "top top",
+			toggleActions: "play none none reverse",
+		},
+	});
+};
+
+const setupSectionScroll = (section) => {
+	const content = section.querySelector(".section-content");
+	const imageBg = section.querySelector(".image-bg");
+	const brandLogo = section.querySelector(".brand img");
+
+	if (!content) {
+		return;
+	}
 
 	const timeline = gsap.timeline({
 		scrollTrigger: {
 			trigger: section,
 			start: "top top",
-			end: () => `+=${items.length * window.innerHeight}`,
+			end: () => `+=${getStickyDistance(section)}`,
 			pin: true,
 			scrub: true,
-			anticipatePin: 1,
+			anticipatePin: 0.25,
 			invalidateOnRefresh: true,
-			onEnter: () => sendVimeoCommand(video, "play"),
-			onEnterBack: () => sendVimeoCommand(video, "play"),
 		},
 	});
 
-	if (video) {
-		ScrollTrigger.create({
-			trigger: section,
-			start: "top bottom",
-			end: "bottom top",
-			onLeave: () => sendVimeoCommand(video, "pause"),
-			onLeaveBack: () => sendVimeoCommand(video, "pause"),
-		});
+	timeline.fromTo(
+		content,
+		{ yPercent: CONTENT_SHIFT_PERCENT_START },
+		{
+			yPercent: CONTENT_SHIFT_PERCENT,
+			ease: "none",
+		},
+		0,
+	);
+
+	if (imageBg) {
+		timeline.fromTo(
+			imageBg,
+			{
+				filter: "blur(2px)",
+				autoAlpha: IMAGE_BG_START_OPACITY,
+				scale: IMAGE_BG_START_SCALE,
+			},
+			{
+				autoAlpha: IMAGE_BG_END_OPACITY,
+				filter: "blur(0px)",
+				scale: IMAGE_BG_END_SCALE,
+				ease: "none",
+			},
+			0,
+		);
 	}
 
-	items.forEach((item, index) => {
-		const words = splitWords(item);
-		const position = index === 0 ? 0 : ">";
+	if (brandLogo) {
+		timeline.fromTo(
+			brandLogo,
+			{
+				autoAlpha: 0,
+				filter: "blur(10px)",
+			},
+			{
+				autoAlpha: 1,
+				filter: "blur(0px)",
+				duration: 0.24,
+				ease: "power1.out",
+			},
+			BRAND_ANIMATION_START,
+		);
+	}
 
-		gsap.set(words, {
-			autoAlpha: 0,
-			filter: "blur(18px)",
-		});
-
-		timeline
-			.to(
-				item,
-				{
-					yPercent: 0,
-					duration: 0.9,
-					ease: "power2.out",
-				},
-				position,
-			)
-			.to(
-				words,
-				{
-					autoAlpha: 1,
-					filter: "blur(0px)",
-					duration: 0.65,
-					stagger: 0.03,
-					ease: "power2.out",
-				},
-				"<0.08",
-			)
-			.to(
-				item,
-				{
-					yPercent: -45,
-					duration: 0.9,
-					ease: "power2.in",
-				},
-				">0.45",
-			)
-			.to(
-				words,
-				{
-					autoAlpha: 0,
-					filter: "blur(14px)",
-					duration: 0.55,
-					stagger: {
-						each: 0.02,
-						from: "end",
-					},
-					ease: "power2.in",
-				},
-				"<",
-			);
-	});
+	addTrackAnimations(section, timeline);
 };
 
-gsap.utils.toArray(".section").forEach(buildSectionScroll);
-ScrollTrigger.refresh();
+const setupSection = (section) => {
+	setupVideoPlayback(section);
+	setupOverlayAnimation(section);
+	setupSectionScroll(section);
+};
+
+const init = () => {
+	window.lenis = createLenis();
+	gsap.utils.toArray(".section").forEach(setupSection);
+	setupLastVideoPauseOverride();
+	ScrollTrigger.refresh();
+	runInitialScroll(window.lenis);
+};
+
+init();
