@@ -10,6 +10,7 @@ const IMAGE_BG_END_SCALE = 1.15;
 const INITIAL_SCROLL_DISTANCE = 1200;
 const BRAND_ANIMATION_START = 0;
 const TRACK_ANIMATION_START = 0.12;
+const TRACK_ANIMATION_END_MARGIN = 0.1;
 const TRACK_FADE_DELAY = 0.2;
 const HEADING_WORD_BLUR = 5;
 const HEADING_WORD_STAGGER = 0.025;
@@ -83,6 +84,7 @@ const addTrackAnimations = (section, timeline, config = {}) => {
 		fadeStart = TRACK_ANIMATION_START + TRACK_FADE_DELAY,
 		fadeDuration = 0.24,
 	} = config;
+	const animationEnd = 1 - TRACK_ANIMATION_END_MARGIN;
 
 	if (!track) {
 		return;
@@ -111,7 +113,7 @@ const addTrackAnimations = (section, timeline, config = {}) => {
 			{
 				autoAlpha: 1,
 				filter: "blur(0px)",
-				duration: headingDuration,
+				duration: Math.max(0.12, Math.min(headingDuration, animationEnd - position)),
 				stagger: HEADING_WORD_STAGGER,
 				ease: "power1.out",
 			},
@@ -133,7 +135,7 @@ const addTrackAnimations = (section, timeline, config = {}) => {
 		{
 			autoAlpha: 1,
 			y: 0,
-			duration: fadeDuration,
+			duration: Math.max(0.12, Math.min(fadeDuration, animationEnd - fadeStart)),
 			stagger: FADE_ITEM_STAGGER,
 			ease: "power1.out",
 		},
