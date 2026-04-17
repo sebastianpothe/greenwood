@@ -10,7 +10,7 @@ const IMAGE_BG_END_SCALE = 1.15;
 const INITIAL_SCROLL_DISTANCE = 1200;
 const BRAND_ANIMATION_START = 0;
 const TRACK_ANIMATION_START = 0.12;
-const TRACK_ANIMATION_END_MARGIN = 0.1;
+const TRACK_ANIMATION_END_MARGIN = 0.25;
 const TRACK_FADE_DELAY = 0.2;
 const HEADING_WORD_BLUR = 5;
 const HEADING_WORD_STAGGER = 0.025;
@@ -131,6 +131,7 @@ const addTrackAnimations = (section, timeline, config = {}) => {
 	headings.forEach((heading, index) => {
 		const words = splitHeadingWords(heading);
 		const position = TRACK_ANIMATION_START + index * headingStep;
+		const totalWordStagger = Math.max(0, words.length - 1) * HEADING_WORD_STAGGER;
 
 		if (!words.length) {
 			return;
@@ -146,7 +147,7 @@ const addTrackAnimations = (section, timeline, config = {}) => {
 			{
 				autoAlpha: 1,
 				filter: "blur(0px)",
-				duration: Math.max(0.12, Math.min(headingDuration, animationEnd - position)),
+				duration: Math.max(0.12, Math.min(headingDuration, animationEnd - position - totalWordStagger)),
 				stagger: HEADING_WORD_STAGGER,
 				ease: "power1.out",
 			},
@@ -163,12 +164,14 @@ const addTrackAnimations = (section, timeline, config = {}) => {
 		y: FADE_ITEM_Y,
 	});
 
+	const totalFadeStagger = Math.max(0, fadeItems.length - 1) * FADE_ITEM_STAGGER;
+
 	timeline.to(
 		fadeItems,
 		{
 			autoAlpha: 1,
 			y: 0,
-			duration: Math.max(0.12, Math.min(fadeDuration, animationEnd - fadeStart)),
+			duration: Math.max(0.12, Math.min(fadeDuration, animationEnd - fadeStart - totalFadeStagger)),
 			stagger: FADE_ITEM_STAGGER,
 			ease: "power1.out",
 		},
@@ -270,6 +273,7 @@ const setupSectionScroll = (section) => {
 		{ yPercent: CONTENT_SHIFT_PERCENT_START },
 		{
 			yPercent: CONTENT_SHIFT_PERCENT,
+			duration: 1,
 			ease: "none",
 		},
 		0,
@@ -287,6 +291,7 @@ const setupSectionScroll = (section) => {
 				autoAlpha: IMAGE_BG_END_OPACITY,
 				filter: "blur(0px)",
 				scale: IMAGE_BG_END_SCALE,
+				duration: 1,
 				ease: "none",
 			},
 			0,
