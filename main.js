@@ -18,6 +18,8 @@ const FADE_ITEM_STAGGER = 0.12;
 const FADE_ITEM_Y = 16;
 
 const getStickyDistance = (section) => section.offsetHeight * SECTION_STICKY_MULTIPLIER;
+let videoPlaybackState = new WeakMap();
+const videoPlaybackTriggers = [];
 
 const createLenis = () => {
 	const lenis = new Lenis();
@@ -37,8 +39,39 @@ const runInitialScroll = (lenis) => {
 	});
 };
 
-const sendVimeoCommand = (iframe, method) => {
-	iframe?.contentWindow?.postMessage(JSON.stringify({ method }), "*");
+const sendVideoCommand = (media, method) => {
+	if (!media) {
+		return;
+	}
+
+	const nextState = method === "play" ? "playing" : "paused";
+	const currentState = videoPlaybackState.get(media);
+
+	if (currentState === nextState) {
+		return;
+	}
+
+	if (media instanceof HTMLVideoElement) {
+		if (method === "play") {
+			media.play().catch(() => {});
+		} else {
+			media.pause();
+		}
+	} else {
+		media.contentWindow?.postMessage(JSON.stringify({ method }), "*");
+	}
+
+	videoPlaybackState.set(media, nextState);
+};
+
+const resetVideoPlaybackState = () => {
+	videoPlaybackState = new WeakMap();
+};
+
+const syncVideoPlaybackState = () => {
+	videoPlaybackTriggers.forEach(({ trigger, video }) => {
+		sendVideoCommand(video, trigger.isActive ? "play" : "pause");
+	});
 };
 
 const splitTextIntoWords = (element) => {
@@ -152,15 +185,17 @@ const setupVideoPlayback = (section) => {
 
 	const getVideoEndOffset = () => getStickyDistance(section) - section.offsetHeight;
 
-	ScrollTrigger.create({
+	const trigger = ScrollTrigger.create({
 		trigger: section,
 		start: "top bottom",
 		end: () => `bottom+=${getVideoEndOffset()} top`,
-		onEnter: () => sendVimeoCommand(video, "play"),
-		onEnterBack: () => sendVimeoCommand(video, "play"),
-		onLeave: () => sendVimeoCommand(video, "pause"),
-		onLeaveBack: () => sendVimeoCommand(video, "pause"),
+		onEnter: () => sendVideoCommand(video, "play"),
+		onEnterBack: () => sendVideoCommand(video, "play"),
+		onLeave: () => sendVideoCommand(video, "pause"),
+		onLeaveBack: () => sendVideoCommand(video, "pause"),
 	});
+
+	videoPlaybackTriggers.push({ trigger, video });
 };
 
 const setupLastVideoPauseOverride = () => {
@@ -180,7 +215,7 @@ const setupLastVideoPauseOverride = () => {
 		trigger: lastVideoSection,
 		start: "top bottom",
 		end: () => `bottom+=${getVideoEndOffset()} top`,
-		onLeave: () => sendVimeoCommand(lastVideo, "play"),
+		onLeave: () => sendVideoCommand(lastVideo, "play"),
 	});
 };
 
@@ -288,6 +323,8 @@ const init = () => {
 	window.lenis = createLenis();
 	gsap.utils.toArray(".section").forEach(setupSection);
 	setupLastVideoPauseOverride();
+	ScrollTrigger.addEventListener("refreshInit", resetVideoPlaybackState);
+	ScrollTrigger.addEventListener("refresh", syncVideoPlaybackState);
 	ScrollTrigger.refresh();
 	runInitialScroll(window.lenis);
 };

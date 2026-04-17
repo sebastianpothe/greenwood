@@ -38,9 +38,9 @@ strong {
 }
 .section {
 	--section-overlay-opacity: 0.75;
-	height: 100vh;
+	height: 100dvh;
 	display: grid;
-	padding: 5vw;
+	padding: 5dvw;
 
 	overflow: hidden;
 	isolation: isolate;
@@ -94,10 +94,10 @@ a.btn {
 	position: absolute;
 	top: 50%;
 	left: 50%;
-	width: 100vw;
-	height: 56.25vw;
-	min-width: 177.78vh;
-	min-height: 100vh;
+	width: 100dvw;
+	height: 56.25dvw;
+	min-width: 177.78dvh;
+	min-height: 100dvh;
 	border: 0;
 	pointer-events: none;
 	z-index: 0;
@@ -169,12 +169,12 @@ h6 {
 }
 
 .h-xl {
-	font-size: clamp(2rem, 3vw, 42px);
+	font-size: clamp(2rem, 3dvw, 42px);
 	line-height: 1.2;
 	font-family: "Sora", Helvetica, sans-serif;
 }
 .h-lg {
-	font-size: clamp(1.5rem, 2.5vw, 30px);
+	font-size: clamp(1.5rem, 2.5dvw, 30px);
 	line-height: 1.2;
 	font-family: "Sora", Helvetica, sans-serif;
 }
@@ -182,19 +182,19 @@ h6 {
 .body-copy {
 	max-width: 40rem;
 	margin: 0 auto;
-	font-size: clamp(1.25rem, 2vw, 1.75rem);
+	font-size: clamp(1.25rem, 2dvw, 1.75rem);
 	line-height: 1.2;
 }
 
 .project-info {
 	display: flex;
 	align-items: center;
-	gap: 7.5vw;
+	gap: 7.5dvw;
 	& .brand {
 		flex-shrink: 0;
 		& img {
 			display: block;
-			width: min(280px, 40vw);
+			width: min(280px, 40dvw);
 		}
 	}
 	@media screen and (max-width: 800px) {
