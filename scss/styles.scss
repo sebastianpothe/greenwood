@@ -104,12 +104,25 @@ a.btn {
 	transform: translate(-50%, -50%);
 }
 .image-bg {
+	--image-mask-opacity-top: 0;
+	--image-mask-opacity-bottom: 1;
+	--image-mask-offset-y: 0%;
 	position: absolute;
 	inset: 0;
+	mask-image: linear-gradient(
+		25deg,
+		rgba(0, 0, 0, var(--image-mask-opacity-top)) 0%,
+		rgba(0, 0, 0, var(--image-mask-opacity-bottom)) 100%
+	);
+	mask-position: 0 var(--image-mask-offset-y);
+	mask-size: 100% 100%;
+	mask-repeat: no-repeat;
+	will-change: mask-position;
 	& img {
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
+		will-change: transform, filter;
 	}
 }
 

@@ -3,10 +3,16 @@ gsap.registerPlugin(ScrollTrigger);
 const SECTION_STICKY_MULTIPLIER = 2;
 const CONTENT_SHIFT_PERCENT_START = 3;
 const CONTENT_SHIFT_PERCENT = -3;
-const IMAGE_BG_START_OPACITY = 0.5;
-const IMAGE_BG_END_OPACITY = 1;
 const IMAGE_BG_START_SCALE = 1;
 const IMAGE_BG_END_SCALE = 1.15;
+const IMAGE_BG_START_BLUR = 0;
+const IMAGE_BG_END_BLUR = 0;
+const IMAGE_BG_START_Y_PERCENT = 4;
+const IMAGE_BG_END_Y_PERCENT = 0;
+const IMAGE_BG_MASK_START_OPACITY_TOP = 1;
+const IMAGE_BG_MASK_START_OPACITY_BOTTOM = 0;
+const IMAGE_BG_MASK_END_OPACITY_TOP = 0;
+const IMAGE_BG_MASK_END_OPACITY_BOTTOM = 1;
 const INITIAL_SCROLL_DISTANCE = 1200;
 const BRAND_ANIMATION_START = 0;
 const TRACK_ANIMATION_START = 0.12;
@@ -250,6 +256,7 @@ const setupOverlayAnimation = (section) => {
 const setupSectionScroll = (section) => {
 	const content = section.querySelector(".section-content");
 	const imageBg = section.querySelector(".image-bg");
+	const imageBgMedia = imageBg?.querySelector("img");
 	const brandLogo = section.querySelector(".brand img");
 
 	if (!content) {
@@ -279,18 +286,48 @@ const setupSectionScroll = (section) => {
 		0,
 	);
 
-	if (imageBg) {
-		timeline.fromTo(
+		if (imageBg) {
+			gsap.set(imageBg, {
+				"--image-mask-opacity-top": IMAGE_BG_MASK_START_OPACITY_TOP,
+				"--image-mask-opacity-bottom": IMAGE_BG_MASK_START_OPACITY_BOTTOM,
+				"--image-mask-offset-y": `${IMAGE_BG_START_Y_PERCENT}%`,
+			});
+
+			timeline.fromTo(
+				imageBg,
+				{
+					"--image-mask-offset-y": `${IMAGE_BG_START_Y_PERCENT}%`,
+				},
+				{
+					"--image-mask-offset-y": `${IMAGE_BG_END_Y_PERCENT}%`,
+					duration: 1,
+					ease: "none",
+				},
+			0,
+		);
+
+		if (imageBgMedia) {
+			timeline.fromTo(
+				imageBgMedia,
+				{
+					filter: `blur(${IMAGE_BG_START_BLUR}px)`,
+					scale: IMAGE_BG_START_SCALE,
+				},
+				{
+					filter: `blur(${IMAGE_BG_END_BLUR}px)`,
+					scale: IMAGE_BG_END_SCALE,
+					duration: 1,
+					ease: "none",
+				},
+				0,
+			);
+		}
+
+		timeline.to(
 			imageBg,
 			{
-				filter: "blur(2px)",
-				autoAlpha: IMAGE_BG_START_OPACITY,
-				scale: IMAGE_BG_START_SCALE,
-			},
-			{
-				autoAlpha: IMAGE_BG_END_OPACITY,
-				filter: "blur(0px)",
-				scale: IMAGE_BG_END_SCALE,
+				"--image-mask-opacity-top": IMAGE_BG_MASK_END_OPACITY_TOP,
+				"--image-mask-opacity-bottom": IMAGE_BG_MASK_END_OPACITY_BOTTOM,
 				duration: 1,
 				ease: "none",
 			},
